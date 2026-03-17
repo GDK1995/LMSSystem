@@ -1,0 +1,611 @@
+definitions:
+  entities.Chapter:
+    properties:
+      course:
+        $ref: '#/definitions/entities.Course'
+      course_id:
+        type: integer
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      order:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  entities.Course:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entities.Lesson:
+    properties:
+      chapter:
+        $ref: '#/definitions/entities.Chapter'
+      chapter_id:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      order:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  entitiesDTO.ChapterDTO:
+    properties:
+      course:
+        $ref: '#/definitions/entities.Course'
+      course_id:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      order:
+        type: integer
+    type: object
+  entitiesDTO.CourseDTO:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  entitiesDTO.LessonDTO:
+    properties:
+      chapter:
+        $ref: '#/definitions/entities.Chapter'
+      chapter_id:
+        type: integer
+      content:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      order:
+        type: integer
+    type: object
+  middleware.AppError:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+    type: object
+host: localhost:8083
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: This is a LMSSystem server.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://example.com/terms/
+  title: LMSSysytem API
+  version: "1.0"
+paths:
+  /api/v1/chapter:
+    get:
+      description: Retrieve all chapters
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.Chapter'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Get all chapters
+      tags:
+      - chapters
+    patch:
+      consumes:
+      - application/json
+      description: Update existing chapter info
+      parameters:
+      - description: Chapter info
+        in: body
+        name: chapter
+        required: true
+        schema:
+          $ref: '#/definitions/entitiesDTO.ChapterDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Update chapter
+      tags:
+      - chapters
+    post:
+      consumes:
+      - application/json
+      description: Add a new chapter to the database
+      parameters:
+      - description: Chapter info
+        in: body
+        name: chapter
+        required: true
+        schema:
+          $ref: '#/definitions/entities.Chapter'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: chapter_id
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Add new chapter
+      tags:
+      - chapters
+  /api/v1/chapter/{id}:
+    delete:
+      description: Delete a chapter by its ID
+      parameters:
+      - description: Chapter ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Delete chapter
+      tags:
+      - chapters
+    get:
+      description: Retrieve a single chapter by its ID
+      parameters:
+      - description: Chapter ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Chapter'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Get chapter by ID
+      tags:
+      - chapters
+  /api/v1/chapter/course/{courseId}:
+    get:
+      description: Retrieve all chapters for a specific course
+      parameters:
+      - description: Course ID
+        in: path
+        name: courseId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.Chapter'
+            type: array
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Get chapters by course ID
+      tags:
+      - chapters
+  /api/v1/course:
+    get:
+      description: Retrieve all courses from the database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.Course'
+            type: array
+        "404":
+          description: Course not found
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Get all courses
+      tags:
+      - courses
+    patch:
+      consumes:
+      - application/json
+      description: Update existing course info
+      parameters:
+      - description: Course info
+        in: body
+        name: course
+        required: true
+        schema:
+          $ref: '#/definitions/entitiesDTO.CourseDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Update course
+      tags:
+      - courses
+    post:
+      consumes:
+      - application/json
+      description: Add a new course to the database
+      parameters:
+      - description: Course info
+        in: body
+        name: course
+        required: true
+        schema:
+          $ref: '#/definitions/entities.Course'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: course_id
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Add new course
+      tags:
+      - courses
+  /api/v1/course/{id}:
+    delete:
+      description: Delete a course by its ID
+      parameters:
+      - description: Course ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "404":
+          description: Course not found
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Delete course
+      tags:
+      - courses
+    get:
+      description: Retrieve a single course by its ID
+      parameters:
+      - description: Course ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Course'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "404":
+          description: Course not found
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Get course by ID
+      tags:
+      - courses
+  /api/v1/lesson:
+    get:
+      description: Retrieve all lessons
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.Lesson'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Get all lessons
+      tags:
+      - lessons
+    patch:
+      consumes:
+      - application/json
+      description: Update existing lesson info
+      parameters:
+      - description: Lesson info
+        in: body
+        name: lesson
+        required: true
+        schema:
+          $ref: '#/definitions/entitiesDTO.LessonDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Update lesson
+      tags:
+      - lessons
+    post:
+      consumes:
+      - application/json
+      description: Add a new lesson to the database
+      parameters:
+      - description: Lesson info
+        in: body
+        name: lesson
+        required: true
+        schema:
+          $ref: '#/definitions/entities.Lesson'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: lesson_id
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Add new lesson
+      tags:
+      - lessons
+  /api/v1/lesson/{id}:
+    delete:
+      description: Delete a lesson by its ID
+      parameters:
+      - description: Lesson ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Delete lesson
+      tags:
+      - lessons
+    get:
+      description: Retrieve a single lesson by its ID
+      parameters:
+      - description: Lesson ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Lesson'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Get lesson by ID
+      tags:
+      - lessons
+  /api/v1/lesson/chapter/{chapterID}:
+    get:
+      description: Retrieve all lessons for a specific chapter
+      parameters:
+      - description: Chapter ID
+        in: path
+        name: chapterID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.Lesson'
+            type: array
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/middleware.AppError'
+      summary: Get lessons by chapter ID
+      tags:
+      - lessons
+swagger: "2.0"

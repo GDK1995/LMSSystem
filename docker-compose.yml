@@ -1,0 +1,72 @@
+version: "3.9"
+
+services:
+  lms-main-db:
+    image: postgres:latest
+    container_name: lms-main-db-container
+    restart: always
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Postgresql1995!
+      POSTGRES_DB: LMSMain
+
+  keycloak-db:
+    image: postgres:latest
+    container_name: keycloak-db
+    restart: always
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak
+    command: start-dev
+    ports:
+      - "8080:8080"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL_HOST: keycloak-db
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+    depends_on:
+      - keycloak-db
+
+  user-service:
+    build: ./LMSSystem
+    container_name: user-service
+    ports:
+      - "8082:8082"
+    environment:
+      KEYCLOAK_CLIENT_ID: go-backend
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_PASSWORD: admin
+      KEYCLOAK_REALM: master
+      KEYCLOAK_URL: http://keycloak:8080
+    depends_on:
+      - keycloak
+
+  main-service:
+    build: ./MainService
+    container_name: lms-main-app-container
+    ports:
+      - "8083:8083"
+    environment:
+      GORM_HOST: lms-main-db
+      GORM_PORT: 5432
+      GORM_USER: postgres
+      GORM_PASSWORD: Postgresql1995!
+      GORM_NAME: LMSMain
+      USER_SERVICE_URL: http://user-service:8082
+      KEYCLOAK_URL: http://keycloak:8080/realms/master
+      KEYCLOAK_CLIENT_ID: go-backend
+    depends_on:
+      - lms-main-db
+      - user-service
+      - keycloak
+    restart: always
