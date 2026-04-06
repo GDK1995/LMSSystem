@@ -24,7 +24,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     container_name: keycloak
-    command: start-dev
+    command: start-dev --verbose
     ports:
       - "8080:8080"
     environment:
@@ -36,6 +36,7 @@ services:
       KC_DB_PASSWORD: keycloak
     depends_on:
       - keycloak-db
+    restart: always
 
   user-service:
     build: ./LMSSystem
@@ -50,6 +51,7 @@ services:
       KEYCLOAK_URL: http://keycloak:8080
     depends_on:
       - keycloak
+    restart: always
 
   main-service:
     build: ./MainService
@@ -66,7 +68,36 @@ services:
       KEYCLOAK_URL: http://keycloak:8080/realms/master
       KEYCLOAK_CLIENT_ID: go-backend
     depends_on:
+      - keycloak
       - lms-main-db
       - user-service
-      - keycloak
     restart: always
+
+  keycloak-setup-roles:
+    image: postgres:latest
+    container_name: keycloak-setup-roles
+    depends_on:
+      - keycloak
+    volumes:
+      - ./init-db/insert.sql:/insert.sql
+    environment:
+      - PGPASSWORD=keycloak
+    entrypoint: >
+      sh -c "
+      echo 'Waiting for Postgres...' &&
+      until pg_isready -h keycloak-db -U keycloak; do
+        sleep 2;
+      done;
+
+      echo 'Waiting for realm master...' &&
+      until psql -h keycloak-db -U keycloak -d keycloak -t -c \"SELECT 1 FROM realm WHERE name='master';\" | grep -q 1; do
+        sleep 5;
+      done;
+
+      echo 'Waiting extra time for full init...' &&
+      sleep 20;
+
+      echo 'Executing insert.sql...' &&
+      psql -h keycloak-db -U keycloak -d keycloak -f /insert.sql &&
+      echo 'SUCCESS: Roles created!'
+      "

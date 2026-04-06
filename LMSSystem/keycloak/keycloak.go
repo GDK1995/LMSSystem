@@ -15,11 +15,13 @@ type KeycloakService interface {
 	LoginUser(ctx context.Context, loginReq entitiesDTO.LoginReq) (entitiesDTO.LoginResponse, error)
 	KeycloakClient(ctx context.Context) (string, error)
 	GetClientSecret(ctx context.Context, internalID string) (string, error)
+	GetSecret() string
 	RefreshToken(ctx context.Context, refreshToken string) (entitiesDTO.LoginResponse, error)
 	GetUser(ctx context.Context, userID string) (*gocloak.User, error)
 	DeleteUser(ctx context.Context, userID string) error
 	UpdateUser(ctx context.Context, user entitiesDTO.User) error
 	SetPassword(ctx context.Context, userID string, password string) error
+	SaveUsersRole(ctx context.Context, role string, userID string) error
 }
 
 type keycloakService struct {
@@ -86,12 +88,20 @@ func (k *keycloakService) CreateUser(ctx context.Context, signUpReq entitiesDTO.
 	userID, err := k.client.CreateUser(ctx, k.token, k.realm, user)
 
 	if err != nil {
+		fmt.Println("err", err)
 		return "", err
 	}
+
+	fmt.Println("userID", userID)
 
 	errTwo := k.SetPassword(ctx, userID, signUpReq.Password)
 	if errTwo != nil {
 		return "", errTwo
+	}
+
+	errThree := k.SaveUsersRole(ctx, signUpReq.Role, userID)
+	if errThree != nil {
+		return "", errThree
 	}
 
 	return userID, nil
@@ -231,6 +241,24 @@ func (k *keycloakService) UpdateUser(ctx context.Context, user entitiesDTO.User)
 		if errTwo != nil {
 			return errTwo
 		}
+	}
+
+	return nil
+}
+
+func (k *keycloakService) GetSecret() string {
+	return k.clientSecret
+}
+
+func (k *keycloakService) SaveUsersRole(ctx context.Context, role string, userID string) error {
+	realmRole, err := k.client.GetRealmRole(ctx, k.token, k.realm, role)
+	if err != nil {
+		return err
+	}
+
+	errTwo := k.client.AddRealmRoleToUser(ctx, k.token, k.realm, userID, []gocloak.Role{{ID: realmRole.ID, Name: realmRole.Name}})
+	if errTwo != nil {
+		return errTwo
 	}
 
 	return nil
