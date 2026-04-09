@@ -67,11 +67,27 @@ services:
       USER_SERVICE_URL: http://user-service:8082
       KEYCLOAK_URL: http://keycloak:8080/realms/master
       KEYCLOAK_CLIENT_ID: go-backend
+      KEYCLOAK_REALM: master
     depends_on:
       - keycloak
       - lms-main-db
       - user-service
+      - minio
     restart: always
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_BUCKET: mybucket
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
 
   keycloak-setup-roles:
     image: postgres:latest
@@ -101,3 +117,5 @@ services:
       psql -h keycloak-db -U keycloak -d keycloak -f /insert.sql &&
       echo 'SUCCESS: Roles created!'
       "
+volumes:
+  minio_data:

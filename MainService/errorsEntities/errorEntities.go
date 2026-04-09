@@ -29,3 +29,8 @@ var ErrBadRequest = &middleware.AppError{
 	Code:    http.StatusBadRequest,
 	Message: "bad request",
 }
+
+var ErrForbidden = &middleware.AppError{
+	Code:    http.StatusForbidden,
+	Message: "forbidden action",
+}

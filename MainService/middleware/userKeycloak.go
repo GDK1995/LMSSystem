@@ -12,6 +12,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type Claims struct {
+	Sub string `json:"sub"`
+
+	RealmAccess struct {
+		Roles []string `json:"roles"`
+	} `json:"realm_access"`
+}
+
 func AuthMiddleware() gin.HandlerFunc {
 	issuer := os.Getenv("KEYCLOAK_URL")
 	provider := waitForKeycloak(issuer)
@@ -37,13 +45,14 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		var claims map[string]interface{}
+		var claims Claims
 		if errThree := idToken.Claims(&claims); errThree != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse claims"})
 			return
 		}
 
-		c.Set("userID", claims["sub"])
+		c.Set("userID", claims.Sub)
+		c.Set("roles", claims.RealmAccess.Roles)
 		c.Next()
 	}
 }
@@ -62,4 +71,36 @@ func waitForKeycloak(issuer string) *oidc.Provider {
 		time.Sleep(5 * time.Second)
 	}
 	panic("Failed to connect to Keycloak after retries: " + err.Error())
+}
+
+func AdminMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role, ok := c.Get("roles") // предполагаем, что роль кладется в контекст в AuthMiddleware
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "bad request"})
+			return
+		}
+
+		roleSlice, ok := role.([]string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "bad request"})
+			return
+		}
+
+		if !containsRole(roleSlice, "ROLE_ADMIN") {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "forbidden action"})
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func containsRole(roles []string, target string) bool {
+	for _, role := range roles {
+		if role == target {
+			return true
+		}
+	}
+	return false
 }

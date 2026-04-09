@@ -3,6 +3,7 @@ package main
 import (
 	"MainService/handlers"
 	"MainService/middleware"
+	"MainService/minio"
 	"MainService/repositories"
 	"MainService/services"
 	"database/sql"
@@ -111,6 +112,9 @@ func main() {
 	logrus.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
 	logrus.Info("Logrus is configured")
 
+	minios := minio.NewMinioClient()
+	fmt.Println(minios)
+
 	courseRepo := repositories.NewCourseRepository(gormDB)
 	courseServ := services.NewCourseService(courseRepo)
 	courseHandler := handlers.NewCourseHandler(courseServ)
@@ -136,25 +140,33 @@ func main() {
 	api.Use(middleware.AuthMiddleware())
 
 	{
-		api.POST("/course", courseHandler.AddCourseH)
 		api.GET("/course", courseHandler.GetCourseH)
 		api.GET("/course/:id", courseHandler.GetCourseByIDH)
-		api.DELETE("/course/:id", courseHandler.DeleteCourseH)
-		api.PATCH("course", courseHandler.UpdateCourseH)
 
-		api.POST("/chapter", chapterHandler.AddChapterH)
 		api.GET("/chapter", chapterHandler.GetChaptersH)
 		api.GET("/chapter/course/:courseId", chapterHandler.GetChaptersByCourseIDH)
 		api.GET("/chapter/:id", chapterHandler.GetChapterByIDH)
-		api.DELETE("/chapter/:id", chapterHandler.DeleteChapterH)
-		api.PATCH("/chapter", chapterHandler.UpdateChapterH)
 
-		api.POST("/lesson", lessonHandler.AddLessonH)
 		api.GET("/lesson", lessonHandler.GetLessonsH)
 		api.GET("/lesson/chapter/:chapterId", lessonHandler.GetLessonsByChapterIDH)
 		api.GET("/lesson/:id", lessonHandler.GetLessonByIDH)
-		api.DELETE("/lesson/:id", lessonHandler.DeleteLessonH)
-		api.PATCH("/lesson", lessonHandler.UpdateLessonH)
+	}
+
+	admin := api.Group("/admin")
+	admin.Use(middleware.AdminMiddleware())
+
+	{
+		admin.POST("/course", courseHandler.AddCourseH)
+		admin.DELETE("/course/:id", courseHandler.DeleteCourseH)
+		admin.PATCH("/course", courseHandler.UpdateCourseH)
+
+		admin.POST("/chapter", chapterHandler.AddChapterH)
+		admin.DELETE("/chapter/:id", chapterHandler.DeleteChapterH)
+		admin.PATCH("/chapter", chapterHandler.UpdateChapterH)
+
+		admin.POST("/lesson", lessonHandler.AddLessonH)
+		admin.DELETE("/lesson/:id", lessonHandler.DeleteLessonH)
+		admin.PATCH("/lesson", lessonHandler.UpdateLessonH)
 	}
 
 	router.Run(":8083")
