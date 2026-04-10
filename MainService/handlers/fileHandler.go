@@ -47,7 +47,7 @@ func (f *fileHandler) GetFileByLessonID(c *gin.Context) {
 func (f *fileHandler) Upload(c *gin.Context) {
 	hasAccess, err := middleware.CheckAccess(c)
 	if err != nil {
-		c.Error(err)
+		c.Error(errorsEntities.ErrForbidden)
 		return
 	}
 

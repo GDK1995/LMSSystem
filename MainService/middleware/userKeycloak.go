@@ -1,13 +1,13 @@
 package middleware
 
 import (
-	"MainService/errorsEntities"
 	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+	"errors"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
@@ -100,12 +100,12 @@ func AdminMiddleware() gin.HandlerFunc {
 func CheckAccess(c *gin.Context) (bool, error) {
 	role, ok := c.Get("roles")
 	if !ok {
-		return false, errorsEntities.ErrUnauthorized
+		return false, errors.New("roles not found")
 	}
 
 	roleSlice, ok := role.([]string)
 	if !ok {
-		return false, errorsEntities.ErrBadRequest
+		return false, errors.New("roles not found")
 	}
 
 	hasAccess := false
