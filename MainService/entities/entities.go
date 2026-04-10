@@ -41,3 +41,8 @@ type Attachment struct {
 	Lesson    Lesson    `json:"lesson" gorm:"foreignKey:LessonID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type UserLesson struct {
+	UserID   string `json:"user_id" gorm:"primaryKey"`
+	LessonID uint   `json:"lesson_id" gorm:"primaryKey"`
+}

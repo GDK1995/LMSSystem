@@ -26,3 +26,17 @@ type LessonDTO struct {
 	ChapterID   uint             `json:"chapter_id"`
 	Chapter     entities.Chapter `json:"chapter"`
 }
+
+type CheckRequest struct {
+	LessonID uint `json:"lesson_id"`
+}
+
+type DownloadReq struct {
+	Name string `json:"name"`
+}
+
+type DownloadReqDTO struct {
+	UserID   string `json:"user_id"`
+	Name     string `json:"name"`
+	LessonID uint   `json:"lesson_id"`
+}

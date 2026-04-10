@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"MainService/errorsEntities"
 	"context"
 	"fmt"
 	"net/http"
@@ -75,7 +76,7 @@ func waitForKeycloak(issuer string) *oidc.Provider {
 
 func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		role, ok := c.Get("roles") // предполагаем, что роль кладется в контекст в AuthMiddleware
+		role, ok := c.Get("roles")
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "bad request"})
 			return
@@ -94,6 +95,28 @@ func AdminMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func CheckAccess(c *gin.Context) (bool, error) {
+	role, ok := c.Get("roles")
+	if !ok {
+		return false, errorsEntities.ErrUnauthorized
+	}
+
+	roleSlice, ok := role.([]string)
+	if !ok {
+		return false, errorsEntities.ErrBadRequest
+	}
+
+	hasAccess := false
+	for _, r := range roleSlice {
+		if r == "ROLE_ADMIN" || r == "ROLE_TEACHER" {
+			hasAccess = true
+			break
+		}
+	}
+
+	return hasAccess, nil
 }
 
 func containsRole(roles []string, target string) bool {

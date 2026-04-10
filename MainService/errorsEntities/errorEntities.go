@@ -34,3 +34,8 @@ var ErrForbidden = &middleware.AppError{
 	Code:    http.StatusForbidden,
 	Message: "forbidden action",
 }
+
+var ErrUnauthorized = &middleware.AppError{
+	Code:    http.StatusUnauthorized,
+	Message: "user unauthorized",
+}

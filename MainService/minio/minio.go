@@ -3,16 +3,20 @@ package minio
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
+	"mime/multipart"
+	"net/http"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type Minio interface {
-	UploadMinio()
-	DownloadMinio()
+	UploadMinio(file multipart.File, header *multipart.FileHeader) (string, string, error)
+	DownloadMinio(objectName string, w http.ResponseWriter) error
 }
 
 type minios struct {
@@ -21,15 +25,12 @@ type minios struct {
 	ctx         context.Context
 }
 
-func NewMinioClient() Minio {
-	minioClient, bucketName, ctx := InitMinio()
+func NewMinioClient(endpoint string, accessKeyID string, secretAccessKey string) Minio {
+	minioClient, bucketName, ctx := InitMinio(endpoint, accessKeyID, secretAccessKey)
 	return &minios{minioClient: minioClient, bucketName: bucketName, ctx: ctx}
 }
 
-func InitMinio() (*minio.Client, string, context.Context) {
-	endpoint := os.Getenv("MINIO_ENDPOINT")
-	accessKeyID := os.Getenv("MINIO_KEY_ID")
-	secretAccessKey := os.Getenv("MINIO_SECRET_KEY")
+func InitMinio(endpoint string, accessKeyID string, secretAccessKey string) (*minio.Client, string, context.Context) {
 	useSSL := false
 
 	minioClient, err := minio.New(endpoint, &minio.Options{
@@ -60,30 +61,50 @@ func InitMinio() (*minio.Client, string, context.Context) {
 	return minioClient, bucketName, ctx
 }
 
-func (m *minios) UploadMinio() {
-	filePath := "example.txt"
-	file, err := os.Create(filePath)
+func (m *minios) UploadMinio(file multipart.File, header *multipart.FileHeader) (string, string, error) {
+	objectName := uuid.New().String() + "_" + header.Filename
+
+	_, err := m.minioClient.PutObject(
+		m.ctx,
+		m.bucketName,
+		objectName,
+		file,
+		header.Size,
+		minio.PutObjectOptions{
+			ContentType: header.Header.Get("Content-Type"),
+		},
+	)
 	if err != nil {
-		fmt.Println(err)
-	}
-	defer file.Close()
-	_, err = file.WriteString("Hello from MinIO + Go!")
-	if err != nil {
-		fmt.Println(err)
+		return "", "", err
 	}
 
-	uploadInfo, err := m.minioClient.FPutObject(m.ctx, m.bucketName, "example.txt", filePath, minio.PutObjectOptions{})
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Printf("Файл загружен: %s, размер: %d\n", uploadInfo.Key, uploadInfo.Size)
-
+	url := fmt.Sprintf("http://%s/%s/%s", os.Getenv("MINIO_ENDPOINT"), m.bucketName, objectName)
+	return url, objectName, nil
 }
 
-func (m *minios) DownloadMinio() {
-	err := m.minioClient.FGetObject(m.ctx, m.bucketName, "example.txt", "downloaded_example.txt", minio.GetObjectOptions{})
+func (m *minios) DownloadMinio(objectName string, w http.ResponseWriter) error {
+	object, err := m.minioClient.GetObject(
+		m.ctx,
+		m.bucketName,
+		objectName,
+		minio.GetObjectOptions{},
+	)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("err1", err)
+		return err
 	}
-	fmt.Println("Файл скачан как downloaded_example.txt")
+	defer object.Close()
+
+	stat, err := object.Stat()
+	if err != nil {
+		fmt.Println("err2", err)
+		return err
+	}
+
+	w.Header().Set("Content-Disposition", "attachment; filename="+objectName)
+	w.Header().Set("Content-Type", stat.ContentType)
+
+	_, err = io.Copy(w, object)
+	fmt.Println("err3", err)
+	return err
 }

@@ -44,6 +44,7 @@ services:
     ports:
       - "8082:8082"
     environment:
+      PORT: 8082
       KEYCLOAK_CLIENT_ID: go-backend
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_PASSWORD: admin
@@ -59,6 +60,7 @@ services:
     ports:
       - "8083:8083"
     environment:
+      PORT: 8083
       GORM_HOST: lms-main-db
       GORM_PORT: 5432
       GORM_USER: postgres
@@ -68,6 +70,10 @@ services:
       KEYCLOAK_URL: http://keycloak:8080/realms/master
       KEYCLOAK_CLIENT_ID: go-backend
       KEYCLOAK_REALM: master
+      MINIO_ENDPOINT: minio:9000
+      MINIO_KEY_ID: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: mybucket
     depends_on:
       - keycloak
       - lms-main-db
@@ -84,7 +90,6 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
-      MINIO_BUCKET: mybucket
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
@@ -97,7 +102,7 @@ services:
     volumes:
       - ./init-db/insert.sql:/insert.sql
     environment:
-      - PGPASSWORD=keycloak
+      PGPASSWORD: keycloak
     entrypoint: >
       sh -c "
       echo 'Waiting for Postgres...' &&

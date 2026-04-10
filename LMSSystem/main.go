@@ -179,5 +179,5 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"message": "success"})
 	})
 
-	router.Run(":8082")
+	router.Run(":" + os.Getenv("PORT"))
 }

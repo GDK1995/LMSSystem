@@ -33,9 +33,7 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-var gormDB *gorm.DB
-
-func InitDB() {
+func InitDB() *gorm.DB {
 	gormUser := os.Getenv("GORM_USER")
 	gormPassword := os.Getenv("GORM_PASSWORD")
 	gormName := os.Getenv("GORM_NAME")
@@ -70,12 +68,14 @@ func InitDB() {
 	}
 	log.Println("Migrations successfully applied")
 
-	gormDB, err = gorm.Open(postgres.Open(connection), &gorm.Config{})
-	if err != nil {
-		log.Fatal("Error of GORM:", err)
+	gormDB, errFour := gorm.Open(postgres.Open(connection), &gorm.Config{})
+	if errFour != nil {
+		log.Fatal("Error of GORM:", errFour)
 	}
+
+	return gormDB
 }
-func CloseDB() {
+func CloseDB(gormDB *gorm.DB) {
 	s, err := gormDB.DB()
 	if err != nil {
 		log.Fatal(err)
@@ -105,15 +105,18 @@ func main() {
 		log.Println("No .env file found, using system environment")
 	}
 
-	InitDB()
-	defer CloseDB()
+	gormDB := InitDB()
+	defer CloseDB(gormDB)
 
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
 	logrus.Info("Logrus is configured")
 
-	minios := minio.NewMinioClient()
-	fmt.Println(minios)
+	endpoint := os.Getenv("MINIO_ENDPOINT")
+	accessKeyID := os.Getenv("MINIO_KEY_ID")
+	secretAccessKey := os.Getenv("MINIO_SECRET_KEY")
+
+	minios := minio.NewMinioClient(endpoint, accessKeyID, secretAccessKey)
 
 	courseRepo := repositories.NewCourseRepository(gormDB)
 	courseServ := services.NewCourseService(courseRepo)
@@ -126,6 +129,14 @@ func main() {
 	lessonRepo := repositories.NewLessonRepository(gormDB)
 	lessonServ := services.NewLessonService(lessonRepo)
 	lessonHandler := handlers.NewLessonHandler(lessonServ)
+
+	userLessonRepo := repositories.NewUserLessonRepo(gormDB)
+	userLessonServ := services.NewUserLessonService(userLessonRepo)
+	userLessonHandl := handlers.NewUserLessonHandler(userLessonServ)
+
+	fileRepo := repositories.NewFileRepository(gormDB)
+	fileServ := services.NewFileService(fileRepo, minios, userLessonServ)
+	fileHandler := handlers.NewFleHandler(fileServ)
 
 	router := gin.Default()
 	router.Use(middleware.ErrorHandler())
@@ -150,6 +161,13 @@ func main() {
 		api.GET("/lesson", lessonHandler.GetLessonsH)
 		api.GET("/lesson/chapter/:chapterId", lessonHandler.GetLessonsByChapterIDH)
 		api.GET("/lesson/:id", lessonHandler.GetLessonByIDH)
+
+		api.POST("/upload", fileHandler.Upload)
+		api.POST("/download/:lessonId", fileHandler.Download)
+		api.GET("/get-file/:lessonId", fileHandler.GetFileByLessonID)
+
+		api.POST("/add-user-lesson", userLessonHandl.AddUserLessonH)
+		api.GET("/check-access/:lessonId", userLessonHandl.CheckUserLessonH)
 	}
 
 	admin := api.Group("/admin")
@@ -169,5 +187,5 @@ func main() {
 		admin.PATCH("/lesson", lessonHandler.UpdateLessonH)
 	}
 
-	router.Run(":8083")
+	router.Run(":" + os.Getenv("PORT"))
 }
